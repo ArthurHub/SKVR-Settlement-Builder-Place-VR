@@ -1,235 +1,221 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.23)
+
+
+
+
+# >>> Project
 set(NAME "Settlement-Builder-Placer-VR")
+set(FRIENDLY_NAME "Settlement Builder Placer VR")
 set(VERSION 0.1.0)
 
-# ---- Options ----
 
-option(COPY_BUILD "Copy the build output to the Skyrim directory." OFF)
-option(BUILD_SKYRIMVR "Build for Skyrim VR" OFF)
+# >>> Folders
+set(ROOT_DIR  "${CMAKE_CURRENT_SOURCE_DIR}")
+set(SOURCE_DIR "${ROOT_DIR}/src")
+set(BUILD_DIR "${CMAKE_CURRENT_BINARY_DIR}")
 
-# ---- Cache build vars ----
-
-macro(set_from_environment VARIABLE)
-	if (NOT DEFINED ${VARIABLE} AND DEFINED ENV{${VARIABLE}})
-		set(${VARIABLE} $ENV{${VARIABLE}})
-	endif ()
-endmacro()
-
-set_from_environment(VCPKG_ROOT)
-
-macro(find_commonlib_path)
-	if (CommonLibName AND NOT ${CommonLibName} STREQUAL "")
-		# Check extern
-		find_path(CommonLibPath
-		include/REL/Relocation.h
-		PATHS extern/${CommonLibName})
-		if (${CommonLibPath} STREQUAL "CommonLibPath-NOTFOUND")
-			#Check path
-			set_from_environment(${CommonLibName}Path)
-			set(CommonLibPath ${${CommonLibName}Path})
-		endif()
-	endif()
-endmacro()
-
-if(BUILD_SKYRIMVR)
-	add_compile_definitions(SKYRIMVR)
-	set(CommonLibName "CommonLibVR")
-	set_from_environment(SkyrimVRPath)
-	set(SkyrimPath ${SkyrimVRPath})
-	set(SkyrimVersion "Skyrim VR")
-else()
-	set(CommonLibName "CommonLibSSE")
-	set_from_environment(Skyrim64Path)
-	set(SkyrimPath ${Skyrim64Path})
-	set(SkyrimVersion "Skyrim SSE")
-endif()
-find_commonlib_path()
-message(
-	STATUS
-	"Building for ${SkyrimVersion} at ${SkyrimPath} with ${CommonLibName} at ${CommonLibPath}."
-)
-
-
-if (DEFINED VCPKG_ROOT)
-	set(CMAKE_TOOLCHAIN_FILE "${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
-	set(VCPKG_TARGET_TRIPLET "x64-windows-static" CACHE STRING "")
-else ()
-	message(
-		WARNING
-		"Variable VCPKG_ROOT is not set. Continuing without vcpkg."
-	)
-endif ()
-
-set(Boost_USE_STATIC_RUNTIME OFF CACHE BOOL "")
-set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>" CACHE STRING "")
-
-# ---- Project ----
-
-project(
-	${NAME}
-	VERSION ${VERSION}
-	LANGUAGES CXX
-)
-
-configure_file(
-	${CMAKE_CURRENT_SOURCE_DIR}/cmake/Version.h.in
-	${CMAKE_CURRENT_BINARY_DIR}/include/Version.h
-	@ONLY
-)
-
-configure_file(
-	${CMAKE_CURRENT_SOURCE_DIR}/cmake/version.rc.in
-	${CMAKE_CURRENT_BINARY_DIR}/version.rc
-	@ONLY
-)
-
-# ---- Include guards ----
-
+# >>> Include guards
 if(PROJECT_SOURCE_DIR STREQUAL PROJECT_BINARY_DIR)
-	message(
-		FATAL_ERROR
-			"In-source builds not allowed. Please make a new directory (called a build directory) and run CMake from there."
-	)
+  message(FATAL_ERROR ">> In-source builds not allowed. Please make a new directory (called a build directory) and run CMake from there.")
 endif()
 
-# ---- Globals ----
+# >>> Set variable from environment by same name
+macro(set_from_environment VARIABLE)
+  if(NOT DEFINED ${VARIABLE} AND DEFINED ENV{${VARIABLE}})
+    set(${VARIABLE} $ENV{${VARIABLE}})
+  endif()
+endmacro()
 
-if (MSVC)
-	add_compile_definitions(
-		_UNICODE
-	)
 
-	if (NOT ${CMAKE_GENERATOR} STREQUAL "Ninja")
-		add_compile_options(
-			/MP	# Build with Multiple Processes
-		)
-	endif ()
-endif ()
+# >>> Setup vcpkg
+set_from_environment(VCPKG_ROOT)
+if(DEFINED VCPKG_ROOT)
+  set(CMAKE_TOOLCHAIN_FILE "${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
+  set(VCPKG_TARGET_TRIPLET "x64-windows-static" CACHE STRING "")
+  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>" CACHE STRING "")
+else()
+  message(FATAL_ERROR ">> Variable VCPKG_ROOT is not set!")
+endif()
 
+# >>> CommonLibVR: locate and add
+set_from_environment(CommonLibVRPath)
+find_path(CommonLibVRPathFind
+  NAMES "include/REL/Relocation.h"
+  HINTS
+    "${CMAKE_CURRENT_LIST_DIR}/external/CommonLibVR" # nested under the framework
+    "${CMAKE_CURRENT_LIST_DIR}/CommonLibVR"
+    "${CMAKE_SOURCE_DIR}/external/CommonLibVR"       # sibling to the framework in the parent project
+    "${CMAKE_SOURCE_DIR}/CommonLibVR"
+    "${CMAKE_SOURCE_DIR}/../CommonLibVR"
+    "${CommonLibVR_ROOT}"
+    "${CommonLibVRPath}"
+)
+if(${CommonLibVRPathFind} STREQUAL "CommonLibVRPathFind-NOTFOUND")
+  message(FATAL_ERROR ">> CommonLibVR path not found! Did you init submodules or set CommonLibVRPath?")
+endif()
+
+# >>> Create Project
+project(${NAME} VERSION ${VERSION} LANGUAGES CXX)
+message(">>> Building '${PROJECT_NAME}' v:${PROJECT_VERSION}")
+message(">>> Using ROOT_DIR: '${ROOT_DIR}'")
+message(">>> Using SOURCE_DIR: '${SOURCE_DIR}'")
+message(">>> Using BUILD_DIR: '${BUILD_DIR}'")
+message(">>> Using CommonLibVR: '${CommonLibVRPathFind}'")
+
+
+# >>> Build flags
+add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
+set(Boost_USE_STATIC_RUNTIME OFF CACHE BOOL "")
+set(Boost_USE_STATIC_LIBS ON)
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_DEBUG OFF)
 
-set(Boost_USE_STATIC_LIBS ON)
+# >>> Configure CommonLib for Skyrim VR
+add_compile_definitions(SKYRIMVR)
+# >>> Bring in the framework (it brings CommonLibVR transitively)
+add_subdirectory(${CommonLibVRPathFind} "CommonLibVR" EXCLUDE_FROM_ALL)
 
+# >>> Version & resource files
+configure_file(${ROOT_DIR}/cmake/version.rc.in  ${BUILD_DIR}/version.rc  @ONLY)
+configure_file(${ROOT_DIR}/cmake/Version.h.in   ${BUILD_DIR}/include/Version.h @ONLY)
+configure_file(${ROOT_DIR}/cmake/resources.rc.in ${BUILD_DIR}/resources.rc @ONLY)
+source_group(TREE ${BUILD_DIR} FILES ${BUILD_DIR}/include/Version.h ${BUILD_DIR}/resources.rc)
 
-# ---- Dependencies ----
-if (DEFINED CommonLibPath AND NOT ${CommonLibPath} STREQUAL "" AND IS_DIRECTORY ${CommonLibPath})
-	add_subdirectory(${CommonLibPath} ${CommonLibName})
-else ()
-	message(
-		FATAL_ERROR
-		"Variable ${CommonLibName}Path is not set or in extern/."
-	)
+# >>> Sources
+file(GLOB_RECURSE headers CONFIGURE_DEPENDS "${SOURCE_DIR}/*.h")
+file(GLOB_RECURSE sources CONFIGURE_DEPENDS "${SOURCE_DIR}/*.cpp")
+file(GLOB_RECURSE inls    CONFIGURE_DEPENDS "${SOURCE_DIR}/*.inl")
+source_group(TREE ${ROOT_DIR} FILES ${headers} ${sources} ${inls})
+
+# >>> Resource files
+list(APPEND resource_files
+  "${ROOT_DIR}/data/config/${NAME}.ini"
+)
+
+# >>> Target (DLL)
+add_library(${PROJECT_NAME} SHARED
+  ${headers}
+  ${sources}
+  ${inls}
+  ${resource_files}
+  ${BUILD_DIR}/include/Version.h
+  ${BUILD_DIR}/version.rc
+  ${BUILD_DIR}/resources.rc
+  "${ROOT_DIR}/.clang-format"
+  "${ROOT_DIR}/.editorconfig"
+)
+
+# >>> C++ standard & defs
+target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_23)
+target_compile_definitions(${PROJECT_NAME} PRIVATE _UNICODE)
+
+# >>> Includes
+target_include_directories(${PROJECT_NAME}
+  PRIVATE
+    ${BUILD_DIR}/include
+    ${SOURCE_DIR}
+)
+
+# >>> Dependencies
+# Link only the framework; it re-exports CommonLibVR and other usage requirements.
+target_link_libraries(${PROJECT_NAME}
+  PRIVATE
+    CommonLibVR::CommonLibVR
+)
+
+# cpptrace via vcpkg
+find_package(cpptrace CONFIG REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE cpptrace::cpptrace)
+
+# >>> PCH
+target_precompile_headers(${PROJECT_NAME} PRIVATE src/PCH.h)
+
+# >>> Compile / Link options
+target_compile_options(${PROJECT_NAME}
+  PRIVATE
+    /sdl # Enable Additional Security Checks
+	/utf-8 # Set Source and Executable character sets to UTF-8
+	/Zi # Debug Information Format
+
+	/permissive- # Standards conformance
+
+	/Zc:alignedNew # C++17 over-aligned allocation
+	/Zc:auto # Deduce Variable Type
+	/Zc:char8_t
+	/Zc:__cplusplus # Enable updated __cplusplus macro
+	/Zc:externC
+	/Zc:externConstexpr # Enable extern constexpr variables
+	/Zc:forScope # Force Conformance in for Loop Scope
+	/Zc:hiddenFriend
+	/Zc:implicitNoexcept # Implicit Exception Specifiers
+	/Zc:lambda
+	/Zc:noexceptTypes # C++17 noexcept rules
+	/Zc:preprocessor # Enable preprocessor conformance mode
+	/Zc:referenceBinding # Enforce reference binding rules
+	/Zc:rvalueCast # Enforce type conversion rules
+	/Zc:sizedDealloc # Enable Global Sized Deallocation Functions
+	/Zc:strictStrings # Disable string literal type conversion
+	/Zc:ternary # Enforce conditional operator rules
+	/Zc:threadSafeInit # Thread-safe Local Static Initialization
+	/Zc:tlsGuards
+	/Zc:trigraphs # Trigraphs Substitution
+	/Zc:wchar_t # wchar_t Is Native Type
+
+	/external:anglebrackets
+	/external:W0
+
+    /W4 # Warning level
+    "$<$<CONFIG:RELEASE>:/Zc:inline;/JMC-;/Ob3>"
+)
+
+target_link_options(${PROJECT_NAME}
+  PRIVATE
+    /WX # Treat Linker Warnings as Errors
+    "$<$<CONFIG:DEBUG>:/INCREMENTAL;/OPT:NOREF;/OPT:NOICF>"
+    "$<$<CONFIG:RELEASE>:/INCREMENTAL:NO;/OPT:REF;/OPT:ICF;/DEBUG:FULL>"
+)
+
+# >>> fix a warning with /Ob2 being overridden with /Ob3
+string(REPLACE "/Ob2" "/Ob3" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
+
+# >>> Post build command to copy plugins (supports multiple paths separated by ';')
+if(POST_BUILD_COPY_PLUGIN)
+  if(DEFINED COPY_PLUGIN_BASE_PATH)
+    # Treat semicolon-separated COPY_PLUGIN_BASE_PATH as a CMake list
+    set(COPY_PLUGIN_PATH_LIST ${COPY_PLUGIN_BASE_PATH})
+
+    message(">>> Create post build command: copy targets to:")
+    foreach(copy_path IN LISTS COPY_PLUGIN_PATH_LIST)
+      message("    ${copy_path}/SKSE/Plugins/")
+      add_custom_command(
+        TARGET ${PROJECT_NAME}
+        POST_BUILD
+        COMMENT "Copying ${PROJECT_NAME}.dll and .pdb to plugins folder: '${copy_path}/SKSE/Plugins/'"
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${copy_path}/SKSE/Plugins/
+        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${PROJECT_NAME}> ${copy_path}/SKSE/Plugins/
+        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_PDB_FILE:${PROJECT_NAME}> ${copy_path}/SKSE/Plugins/
+      )
+    endforeach()
+  else()
+    message(FATAL_ERROR "Variable 'COPY_PLUGIN_BASE_PATH' is not defined but 'POST_BUILD_COPY_PLUGIN' is true!")
+  endif()
+else()
+  message(">>> No post build copy")
 endif()
 
-find_path(CLIB_UTIL_INCLUDE_DIRS "ClibUtil/detail/SimpleIni.h")
-
-# ---- Add source files ----
-
-set(SOURCES
-	src/BoundsUtil.h
-	src/InputBlocker.h
-	src/main.cpp
-	src/Papyrus.h
-	src/Papyrus.cpp
-	src/Placement.h
-	src/Placement.cpp
-	src/VRInputHandler.h
-	src/VRInputHandler.cpp
-	src/PCH.h
+# >>> Post build for release only to package the mod into a .7z file
+message(">>> Create post build command: package mod on release build")
+add_custom_command(
+  TARGET ${PROJECT_NAME}
+  POST_BUILD
+  COMMAND ${CMAKE_COMMAND}
+          -DPROJECT_NAME=${PROJECT_NAME}
+          -DPROJECT_FRIENDLY_NAME=${FRIENDLY_NAME}
+          -DPROJECT_VERSION=${PROJECT_VERSION}
+          -DROOT_DIR=${ROOT_DIR}
+          -DBUILD_DIR=${BUILD_DIR}
+          -DTARGET_FILE="$<TARGET_FILE:${PROJECT_NAME}>"
+          -DTARGET_PDB_FILE="$<TARGET_PDB_FILE:${PROJECT_NAME}>"
+          -DCONFIG=$(Configuration)
+          -P "${ROOT_DIR}/cmake/package.cmake"
 )
-
-source_group(
-	TREE
-		${CMAKE_CURRENT_SOURCE_DIR}
-	FILES
-		${SOURCES}
-)
-
-source_group(
-	TREE
-		${CMAKE_CURRENT_BINARY_DIR}
-	FILES
-		${CMAKE_CURRENT_BINARY_DIR}/include/Version.h
-)
-
-# ---- Create DLL ----
-
-add_library(
-	${PROJECT_NAME}
-	SHARED
-	${SOURCES}
-	${CMAKE_CURRENT_BINARY_DIR}/include/Version.h
-	${CMAKE_CURRENT_BINARY_DIR}/version.rc
-	.clang-format
-	.editorconfig
-)
-
-target_compile_features(
-	${PROJECT_NAME}
-	PRIVATE
-		cxx_std_23
-)
-
-target_include_directories(
-	${PROJECT_NAME}
-	PRIVATE
-		${CMAKE_CURRENT_BINARY_DIR}/include
-		${CMAKE_CURRENT_SOURCE_DIR}/src
-		${CLIB_UTIL_INCLUDE_DIRS}
-)
-
-target_link_libraries(
-	${PROJECT_NAME}
-	PRIVATE
-		${CommonLibName}::${CommonLibName}
-)
-
-target_precompile_headers(
-	${PROJECT_NAME}
-	PRIVATE
-		src/PCH.h
-)
-
-if (MSVC)
-	target_compile_options(
-		${PROJECT_NAME}
-		PRIVATE
-			/sdl             # Enable Additional Security Checks
-			/utf-8           # Set Source and Executable character sets to UTF-8
-			/Zi              # Debug Information Format
-
-			/permissive-     # Standards conformance
-			/Zc:preprocessor # Enable preprocessor conformance mode
-
-			/wd4200          # nonstandard extension used : zero-sized array in struct/union
-
-			"$<$<CONFIG:DEBUG>:>"
-			"$<$<CONFIG:RELEASE>:/Zc:inline;/JMC-;/Ob3>"
-	)
-
-	target_link_options(
-		${PROJECT_NAME}
-		PRIVATE
-			"$<$<CONFIG:DEBUG>:/INCREMENTAL;/OPT:NOREF;/OPT:NOICF>"
-			"$<$<CONFIG:RELEASE>:/INCREMENTAL:NO;/OPT:REF;/OPT:ICF;/DEBUG:FULL>"
-	)
-endif ()
-
-# ---- Post build ----
-
-if (COPY_BUILD)
-	if (DEFINED SkyrimPath)
-		add_custom_command(
-			TARGET ${PROJECT_NAME}
-			POST_BUILD
-			COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${PROJECT_NAME}> ${SkyrimPath}/Data/SKSE/Plugins/
-			COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_PDB_FILE:${PROJECT_NAME}> ${SkyrimPath}/Data/SKSE/Plugins/
-		)
-	else ()
-		message(
-			WARNING
-			"Variable ${SkyrimPath} is not defined. Skipping post-build copy command."
-		)
-	endif ()
-endif ()

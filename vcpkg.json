@@ -9,7 +9,18 @@
     "boost-stl-interfaces",
     "rsm-binary-io",
     "clib-util",
-    "spdlog"
+    "spdlog",
+    "xbyak",
+    "nlohmann-json",
+    "simpleini",
+    "thomasmonkman-filewatch",
+    "cpptrace"
   ],
-  "builtin-baseline": "dc025b51f5fbf019fb0d143f8c753425ab72a4b0"
+  "builtin-baseline": "dc025b51f5fbf019fb0d143f8c753425ab72a4b0",
+  "overrides": [
+    {
+      "name": "cpptrace",
+      "version": "1.0.0"
+    }
+  ]
 }
