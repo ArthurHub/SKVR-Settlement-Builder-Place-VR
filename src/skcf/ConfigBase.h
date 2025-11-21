@@ -1,0 +1,121 @@
+#pragma once
+
+#include <atomic>
+#include <SimpleIni.h>
+#include <thomasmonkman-filewatch/FileWatch.hpp>
+
+#include "Logger.h"
+#include "common/CommonUtils.h"
+
+using namespace skcf::common;
+
+namespace skcf
+{
+    static const auto BASE_PATH = getRelativePathInDocuments(R"(\My Games\Fallout4VR\Mods_Config)");
+
+    class ConfigBase
+    {
+    public:
+        ConfigBase(const std::string_view& module, const std::string_view& iniFilePath, const WORD iniDefaultConfigEmbeddedResourceId) :
+            _module(std::string(module)),
+            _iniFilePath(iniFilePath),
+            _iniDefaultConfigEmbeddedResourceId(iniDefaultConfigEmbeddedResourceId) {}
+
+        virtual ~ConfigBase() = default;
+
+        /**
+         * Load the config from the INI file.
+         */
+        virtual void load()
+        {
+            logger::info("Load ini config...");
+            createDirDeep(_iniFilePath);
+            loadIniConfig();
+        }
+
+        /**
+         * Save the current in-memory config values to the INI file.
+         */
+        virtual void save()
+        {
+            saveIniConfig();
+        }
+
+        void loadEmbeddedDefaultOnly();
+
+        bool checkDebugDumpDataOnceFor(const char* name);
+
+        // Can be used to test things at runtime during development
+        // i.e. check "debugFlowFlag==1" somewhere in code and use config reload to change the value at runtime.
+        float debugFlowFlag1 = 0;
+        float debugFlowFlag2 = 0;
+        float debugFlowFlag3 = 0;
+        std::string debugFlowText1;
+        std::string debugFlowText2;
+        std::map<std::string, std::string> debugVRUIProperties;
+
+    protected:
+        // Override to load your config values
+        virtual void loadIniConfigInternal(const CSimpleIniA& ini) = 0;
+
+        // Override to save your config values
+        virtual void saveIniConfigInternal(CSimpleIniA&) {}
+
+        void loadIniConfig();
+        int loadEmbeddedResourceIniConfigVersion() const;
+        void loadDebugSection(const CSimpleIniA& ini);
+        void loadVRUISection(const CSimpleIniA& ini);
+        void loadIniConfigValues();
+        void saveVRUIIniSection(CSimpleIniA& ini);
+        void saveIniConfig();
+        void saveIniConfigValue(const char* section, const char* key, bool value);
+        void saveIniConfigValue(const char* section, const char* key, int value);
+        void saveIniConfigValue(const char* section, const char* key, float value);
+        void saveIniConfigValue(const char* section, const char* key, const char* value);
+        void updateIniConfigToLatestVersion(int currentVersion, int latestVersion) const;
+        static std::unordered_map<std::string, RE::NiTransform> loadEmbeddedOffsets(WORD fromResourceId, WORD toResourceId);
+        static void loadOffsetJsonFile(const std::string& file, std::unordered_map<std::string, RE::NiTransform>& offsetsMap);
+        static std::unordered_map<std::string, RE::NiTransform> loadOffsetsFromFilesystem(const std::string& path);
+        static void saveOffsetsToJsonFile(const std::string& name, const RE::NiTransform& transform, const std::string& file);
+
+        /**
+         * Custom code to migrate the INI config to the latest version.
+         * Can be used is special handling is required for the specific config.
+         */
+        virtual void updateIniConfigToLatestVersionCustom(int /*currentVersion*/, int /*latestVersion*/, const CSimpleIniA& /*oldIni*/, CSimpleIniA& /*newIni*/) const {}
+
+        void startIniConfigFileWatch();
+
+        void stopIniConfigFileWatch();
+
+        // name of the module DLL to read resources from
+        std::string _module;
+
+        // location of ini config on disk
+        std::string _iniFilePath;
+
+    private:
+        // resource id to use for default ini config
+        WORD _iniDefaultConfigEmbeddedResourceId;
+
+        // The INI config version to handle updates/migrations
+        int _iniConfigVersion = 0;
+
+        // The log level to set for the logger
+        int _logLevel = 0;
+
+        // the log message pattern to use for the logger
+        std::string _logPattern;
+
+        std::string _debugDumpDataOnceNames;
+
+        // filesystem watch for changes to INI config file to have live reload
+        std::unique_ptr<filewatch::FileWatch<std::string>> _iniConfigFileWatch;
+
+        // INI config file last write time to prevent reload the same change because of OS multiple events
+        std::atomic<std::filesystem::file_time_type> _lastIniFileWriteTime;
+
+        // Handle ignoring file watch change event IFF the change was made by us
+        std::atomic<bool> _ignoreNextIniFileChange = false;
+    };
+}
