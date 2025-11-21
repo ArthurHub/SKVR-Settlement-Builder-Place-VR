@@ -46,69 +46,70 @@
 
 namespace InputBlocker
 {
-	class ScopedActionBlock final :
-		public RE::BSTEventSink<RE::InputEvent*>
-	{
-	public:
-		void Apply(bool block)
-		{
-			auto* pc = RE::PlayerControls::GetSingleton();
-			if (!pc)
-				return;
+    class ScopedActionBlock final :
+        public RE::BSTEventSink<RE::InputEvent*>
+    {
+    public:
+        void Apply(bool block)
+        {
+            auto* pc = RE::PlayerControls::GetSingleton();
+            if (!pc)
+                return;
 
-			// handlers can be rebuilt on load; clear stale cache when we see a new set
-			if (lastHandlersPtr != pc->handlers.data()) {
-				lastHandlersPtr = pc->handlers.data();
-				original.clear();
-			}
+            // handlers can be rebuilt on load; clear stale cache when we see a new set
+            if (lastHandlersPtr != pc->handlers.data()) {
+                lastHandlersPtr = pc->handlers.data();
+                original.clear();
+            }
 
-			for (auto& h : pc->handlers) {
-				if (!h)
-					continue;
+            for (auto& h : pc->handlers) {
+                if (!h)
+                    continue;
 
-				// VR headers: handlers are raw pointers, not smart ptrs
-				if (skyrim_cast<RE::JumpHandler*>(h) || skyrim_cast<RE::SneakHandler*>(h)) {
-					auto it = original.find(h);
-					if (it == original.end()) {
-						original[h] = h->inputEventHandlingEnabled;  // remember actual prior value
-					}
-					h->inputEventHandlingEnabled = !block;
-				}
-			}
+                // VR headers: handlers are raw pointers, not smart ptrs
+                if (skyrim_cast<RE::JumpHandler*>(h) || skyrim_cast<RE::SneakHandler*>(h)) {
+                    auto it = original.find(h);
+                    if (it == original.end()) {
+                        original[h] = h->inputEventHandlingEnabled; // remember actual prior value
+                    }
+                    h->inputEventHandlingEnabled = !block;
+                }
+            }
 
-			if (block) {
-				if (++refCount == 1) {
-					// optional: add yourself as an input sink if you also read axes
-					RE::BSInputDeviceManager::GetSingleton()->AddEventSink(this);
-				}
-			} else {
-				if (refCount && --refCount == 0) {
-					// restore every tracked handler to its remembered state
-					for (auto& [ptr, wasEnabled] : original) {
-						if (ptr)
-							ptr->inputEventHandlingEnabled = wasEnabled;
-					}
-					original.clear();
-					RE::BSInputDeviceManager::GetSingleton()->RemoveEventSink(this);
-				}
-			}
-		}
+            if (block) {
+                if (++refCount == 1) {
+                    // optional: add yourself as an input sink if you also read axes
+                    RE::BSInputDeviceManager::GetSingleton()->AddEventSink(this);
+                }
+            } else {
+                if (refCount && --refCount == 0) {
+                    // restore every tracked handler to its remembered state
+                    for (auto& [ptr, wasEnabled] : original) {
+                        if (ptr)
+                            ptr->inputEventHandlingEnabled = wasEnabled;
+                    }
+                    original.clear();
+                    RE::BSInputDeviceManager::GetSingleton()->RemoveEventSink(this);
+                }
+            }
+        }
 
-		// noop sink (only here if you also want to swallow axes/buttons when active)
-		using EventResult = RE::BSEventNotifyControl;
-		EventResult ProcessEvent(RE::InputEvent* const*, RE::BSTEventSource<RE::InputEvent*>*) override
-		{
-			return refCount ? EventResult::kStop : EventResult::kContinue;
-		}
+        // noop sink (only here if you also want to swallow axes/buttons when active)
+        using EventResult = RE::BSEventNotifyControl;
 
-	private:
-		std::unordered_map<RE::PlayerInputHandler*, bool> original;
-		const void* lastHandlersPtr{ nullptr };
-		uint32_t refCount{ 0 };
-	};
+        EventResult ProcessEvent(RE::InputEvent* const*, RE::BSTEventSource<RE::InputEvent*>*) override
+        {
+            return refCount ? EventResult::kStop : EventResult::kContinue;
+        }
 
-	static ScopedActionBlock g_block;
+    private:
+        std::unordered_map<RE::PlayerInputHandler*, bool> original;
+        const void* lastHandlersPtr{ nullptr };
+        uint32_t refCount{ 0 };
+    };
 
-	inline void EnterEditMode() { g_block.Apply(true); }
-	inline void ExitEditMode() { g_block.Apply(false); }
+    static ScopedActionBlock g_block;
+
+    inline void EnterEditMode() { g_block.Apply(true); }
+    inline void ExitEditMode() { g_block.Apply(false); }
 }

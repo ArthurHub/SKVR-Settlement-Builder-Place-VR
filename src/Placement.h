@@ -10,19 +10,19 @@ namespace Placement
         bool active{ false };
 
         // preview control
-        float previewYaw{ 0.0f };        // desired yaw from input
+        float previewYaw{ 0.0f }; // desired yaw from input
         float previewDistance{ 220.0f }; // desired distance from wand
 
-		float previewXoffset{ 0.0f };  // desired X offset from wand
-		float previewZoffset{ 0.0f };  // desired X offset from wand
+        float previewXoffset{ 0.0f }; // desired X offset from wand
+        float previewZoffset{ 0.0f }; // desired X offset from wand
 
         // baseline and state
         bool hasBaseline{ false };
-        RE::NiPoint3 baselineLocal{}; 
+        RE::NiPoint3 baselineLocal{};
 
         // current (smoothed) preview transform applied to the object
-        RE::NiPoint3 currentPreviewPos{};    // world position currently being applied
-        float currentPreviewYaw{ 0.0f };     // yaw (radians) currently being applied
+        RE::NiPoint3 currentPreviewPos{}; // world position currently being applied
+        float currentPreviewYaw{ 0.0f }; // yaw (radians) currently being applied
 
         // smoothing factors (0..1). alpha per-frame lerp factor.
         // Recommended starting values: position 0.18, rotation 0.25 — tune as needed.
