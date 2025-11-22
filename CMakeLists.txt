@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 3.23)
 
 
-
-
 # >>> Project
 set(NAME "Settlement-Builder-Placer-VR")
 set(FRIENDLY_NAME "Settlement Builder Placer VR")
@@ -117,10 +115,14 @@ target_include_directories(${PROJECT_NAME}
 )
 
 # >>> Dependencies
+target_link_directories(${PROJECT_NAME} PRIVATE
+    ${ROOT_DIR}/external/CommonLibVR/extern/openvr/lib/win64
+)
 # Link only the framework; it re-exports CommonLibVR and other usage requirements.
 target_link_libraries(${PROJECT_NAME}
   PRIVATE
     CommonLibVR::CommonLibVR
+    openvr_api
 )
 
 # cpptrace via vcpkg
