@@ -147,7 +147,7 @@ namespace skcf::logger
     inline void init(const std::string_view& logFileName)
     {
         auto path = SKSE::log::log_directory();
-        // const auto gamepath = REL::Module::IsVR() ? "Fallout4VR/F4SE" : "Fallout4/F4SE";
+        // const auto gamepath = REL::Module::IsVR() ? "Fallout4VR/SKSE" : "Fallout4/SKSE";
         const auto gamepath = "Skyrim VR/SKSE";
         if (!path.value().generic_string().ends_with(gamepath)) {
             // handle bug where game directory is missing

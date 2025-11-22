@@ -29,8 +29,8 @@ namespace skcf
 
         ConfigBase* getConfig() const { return _settings.config; }
 
-        bool onF4SEPluginQuery(const SKSE::QueryInterface* skse, SKSE::PluginInfo* info) const;
-        bool onF4SEPluginLoad(const SKSE::LoadInterface* f4se);
+        bool onSKSEPluginQuery(const SKSE::QueryInterface* skse, SKSE::PluginInfo* info) const;
+        bool onSKSEPluginLoad(const SKSE::LoadInterface* skse);
 
         void onFrameUpdateSafe();
 
@@ -41,8 +41,8 @@ namespace skcf
         void onGameSessionLoadedInner();
 
     protected:
-        // Run F4SE plugin load and initialize the plugin given the init handle.
-        virtual void onModLoaded(const SKSE::LoadInterface* f4SE) = 0;
+        // Run SKSE plugin load and initialize the plugin given the init handle.
+        virtual void onModLoaded(const SKSE::LoadInterface* skse) = 0;
 
         // On game fully loaded initialize things that should be initialized only once.
         virtual void onGameLoaded() = 0;

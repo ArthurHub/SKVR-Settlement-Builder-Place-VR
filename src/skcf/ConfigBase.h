@@ -11,7 +11,7 @@ using namespace skcf::common;
 
 namespace skcf
 {
-    static const auto BASE_PATH = getRelativePathInDocuments(R"(\My Games\Fallout4VR\Mods_Config)");
+    static const auto GAME_BASE_PATH = getRelativePathInDocuments(R"(\My Games\Skyrim VR\Mods_Config)");
 
     class ConfigBase
     {

@@ -45,9 +45,9 @@ namespace skcf
     }
 
     /**
-     * Run F4SE plugin query to check compatibility and fill out plugin info.
+     * Run SKSE plugin query to check compatibility and fill out plugin info.
      */
-    bool ModBase::onF4SEPluginQuery(const SKSE::QueryInterface* skse, SKSE::PluginInfo* info) const
+    bool ModBase::onSKSEPluginQuery(const SKSE::QueryInterface* skse, SKSE::PluginInfo* info) const
     {
         bool success = false;
         CPPTRACE_TRY
@@ -67,7 +67,7 @@ namespace skcf
                 } else if (skse->RuntimeVersion() < SKSE::RUNTIME_LATEST) {
                     logger::critical("Unsupported runtime version {}", skse->RuntimeVersion().string());
                 } else {
-                    logger::info("F4SE Plugin Query v{} compatible: {} v{}", skse->SKSEVersion(), info->name, info->version);
+                    logger::info("SKSE Plugin Query v{} compatible: {} v{}", skse->SKSEVersion(), info->name, info->version);
                     success = true;
                 }
             }
@@ -79,21 +79,21 @@ namespace skcf
     }
 
     /**
-     * Run F4SE plugin load and initialize the plugin given the init handle.
+     * Run SKSE plugin load and initialize the plugin given the init handle.
      * Handle any exceptions and log them.
      */
-    bool ModBase::onF4SEPluginLoad(const SKSE::LoadInterface* f4se)
+    bool ModBase::onSKSEPluginLoad(const SKSE::LoadInterface* skse)
     {
         bool success = false;
         CPPTRACE_TRY
             {
-                logger::info("Init CommonLibF4 F4SE...");
-                SKSE::Init(f4se, false);
+                logger::info("Init CommonLib SKSE...");
+                SKSE::Init(skse, false);
 
                 logger::info("Init config...");
                 _settings.config->load();
 
-                logger::info("Register F4SE messages...");
+                logger::info("Register SKSE messages...");
                 _messaging = SKSE::GetMessagingInterface();
                 _messaging->RegisterListener(onF4VRSEMessage);
 
@@ -101,7 +101,7 @@ namespace skcf
                 SKSE::AllocTrampoline(_settings.trampolineAllocationSize);
 
                 logger::info("Load Mod...");
-                onModLoaded(f4se);
+                onModLoaded(skse);
 
                 logger::info("Load successful");
                 success = true;
