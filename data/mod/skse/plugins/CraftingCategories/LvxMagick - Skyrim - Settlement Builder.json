@@ -1,0 +1,44 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Exit-9B/CraftingCategories/main/docs/CraftingCategories.schema.json",
+  "categories": {
+    "Building Blocks": {
+      "keywords": [ "LVXBuildingBlocks" ]
+    },
+    "Landscape & Water": {
+      "keywords": [ "LVXLandscapeWater" ]
+    },
+    "Lights": {
+      "keywords": [ "LVXLights" ]
+    },
+    "Food & Drink": {
+      "keywords": [ "LVXFoodDrink" ]
+    },
+    "Furniture": {
+      "keywords": [ "LVXFurniture" ]
+    },
+    "Clutter": {
+      "keywords": [ "LVXClutter" ]
+    },
+    "Effects": {
+      "keywords": [ "LVXEffects" ]
+    },
+    "Containers": {
+      "keywords": [ "LVXContainers" ]
+    },
+    "Structures": {
+      "keywords": [ "LVXStructures" ]
+    },
+    "Crafting Stations": {
+      "keywords": [ "LVXCraftingStations" ]
+    },
+    "Statues": {
+      "keywords": [ "LVXStatues" ]
+    },
+    "Magic": {
+      "keywords": [ "LVXMagic" ]
+    },
+    "Plants": {
+      "keywords": [ "LVXPlants" ]
+    }
+  }
+}
