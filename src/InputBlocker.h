@@ -41,6 +41,7 @@
 //}
 
 #pragma once
+
 #include "RE/Skyrim.h"
 #include <unordered_map>
 
@@ -50,7 +51,7 @@ namespace InputBlocker
         public RE::BSTEventSink<RE::InputEvent*>
     {
     public:
-        void Apply(bool block)
+        void Apply(const bool block)
         {
             auto* pc = RE::PlayerControls::GetSingleton();
             if (!pc)

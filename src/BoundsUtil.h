@@ -60,7 +60,7 @@ namespace BoundsUtil
     }
 
     // Convenience: compute a spawn position “in front of player” far enough to avoid overlap
-    inline RE::NiPoint3 SafeSpawnInFrontOfPlayer(float neededRadius, float extraBuffer = 100.0f)
+    inline RE::NiPoint3 SafeSpawnInFrontOfPlayer(const float neededRadius, const float extraBuffer = 100.0f)
     {
         auto* pc = RE::PlayerCharacter::GetSingleton();
         const RE::NiPoint3 ppos = pc->GetPosition();

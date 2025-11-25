@@ -5,15 +5,16 @@
 
 namespace Papyrus
 {
-    void LivePlace(RE::StaticFunctionTag*, RE::TESObjectREFR* a_refr, float faceRotation, float yMult, float zOffset, float xOffset)
+    void LivePlace(RE::StaticFunctionTag*, RE::TESObjectREFR* a_refr, const float faceRotation, const float yMult, const float zOffset, const float xOffset)
     {
         if (!a_refr) {
             // Handle null reference
+            SKSE::log::warn("Live place null ref!");
             return;
         }
 
+        logger::info("Start live place handle for '{}': Rot({:.2f}), Mult({:.2f}), Offset({:.2f}, {:.2f})", a_refr->GetName(), faceRotation, yMult, zOffset, xOffset);
         Placement::StartLivePlace(a_refr, faceRotation, yMult, zOffset, xOffset);
-        return;
     }
 
     bool RegisterFuncs(RE::BSScript::IVirtualMachine* a_vm)
@@ -23,11 +24,10 @@ namespace Papyrus
             return false;
         }
 
-        logger::info("Registering Papyrus functions");
-
+        logger::debug("Registering Papyrus functions...");
         a_vm->RegisterFunction("LivePlace", "SBPlaceVR"sv, LivePlace);
 
-        logger::info("Papyrus functions registered");
+        logger::info("Papyrus functions registered successfully");
         return true;
     }
 }

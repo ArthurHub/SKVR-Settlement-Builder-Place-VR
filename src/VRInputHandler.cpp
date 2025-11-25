@@ -12,7 +12,7 @@ VRInputHandler::EventResult VRInputHandler::ProcessEvent(RE::InputEvent* const* 
         if (input->eventType == RE::INPUT_EVENT_TYPE::kButton) {
             auto button = static_cast<RE::ButtonEvent*>(input);
             // Log device, key code, and value
-            //logger::info(
+            //logger::sample(
             //    "[VRInputLogger] Device: {}, IDCode: {}, Value: {}, Held: {}, IsDown: {}",
             //    button->device.underlying(),
             //    button->GetIDCode(),
@@ -51,8 +51,7 @@ float VRInputHandler::GetRightJoystickY() const
 void VRInputHandler::Register()
 {
     GetSingleton()->Reset();
-    auto inputMgr = RE::BSInputDeviceManager::GetSingleton();
-    if (inputMgr) {
+    if (const auto inputMgr = RE::BSInputDeviceManager::GetSingleton()) {
         inputMgr->AddEventSink<RE::InputEvent*>(GetSingleton());
         logger::info("[VRInputHandler] Registered input event sink.");
     } else {
@@ -62,8 +61,7 @@ void VRInputHandler::Register()
 
 void VRInputHandler::UnRegister()
 {
-    auto inputMgr = RE::BSInputDeviceManager::GetSingleton();
-    if (inputMgr) {
+    if (const auto inputMgr = RE::BSInputDeviceManager::GetSingleton()) {
         inputMgr->RemoveEventSink(GetSingleton());
         logger::info("[VRInputHandler] Unregistered input event sink.");
     } else {
